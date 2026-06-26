@@ -83,15 +83,21 @@ class OrbitCamera {
     var distance = 8f
         private set
 
+    /** Tarama modunda true olduğunda rotate()/zoom() çağrıları yok sayılır (kamera kilitli). */
+    var topDownLocked = false
+        private set
+
     private val minDistance = 1.5f
     private val maxDistance = 50f
 
     fun rotate(deltaX: Float, deltaY: Float) {
+        if (topDownLocked) return
         rotationY = (rotationY + deltaX) % 360f
         rotationX = (rotationX + deltaY).coerceIn(-89f, 89f)
     }
 
     fun zoom(factor: Float) {
+        if (topDownLocked) return
         distance = (distance / factor).coerceIn(minDistance, maxDistance)
     }
 
@@ -104,6 +110,21 @@ class OrbitCamera {
         distance = 8f
     }
 
+    /**
+     * Tarama (dokunmatik ölçüm) modu için kamerayı tam yukarıdan bakan, sabit konuma kilitler.
+     * 90° tam dikine bakış gimbal lock'a yol açabileceğinden 89.9° kullanılır.
+     */
+    fun lockTopDown(viewDistance: Float = 10f) {
+        rotationX = 89.9f
+        rotationY = 0f
+        distance = viewDistance
+        topDownLocked = true
+    }
+
+    fun unlockOrbit() {
+        topDownLocked = false
+    }
+
     fun computeViewMatrix(target: FloatArray = floatArrayOf(2.5f, 0f, 2.5f)): FloatArray {
         val viewMatrix = FloatArray(16)
         val radX = Math.toRadians(rotationX.toDouble())
@@ -113,11 +134,23 @@ class OrbitCamera {
         val eyeY = target[1] + (distance * Math.sin(radX)).toFloat()
         val eyeZ = target[2] + (distance * Math.cos(radX) * Math.cos(radY)).toFloat()
 
+        // Top-down kilitli modda bakış yönü (0,-1,0)'a çok yaklaşır; (0,1,0) up vektörü
+        // bu durumda sayısal kararsızlığa yol açabilir. Bunun yerine dünya Z eksenini
+        // "yukarı" kabul ederek ekranda tutarlı bir kuzey-yukarı yönelim sağlanır.
+        val upX: Float
+        val upY: Float
+        val upZ: Float
+        if (topDownLocked) {
+            upX = 0f; upY = 0f; upZ = -1f
+        } else {
+            upX = 0f; upY = 1f; upZ = 0f
+        }
+
         Matrix.setLookAtM(
             viewMatrix, 0,
             eyeX, eyeY, eyeZ,
             target[0], target[1], target[2],
-            0f, 1f, 0f
+            upX, upY, upZ
         )
         return viewMatrix
     }

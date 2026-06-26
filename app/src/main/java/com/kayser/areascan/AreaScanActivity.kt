@@ -28,10 +28,12 @@ import com.kayser.areascan.fragments.FragmentSoilProperties
 import com.kayser.areascan.fragments.FragmentSurfaceProperties
 import com.kayser.areascan.render.widgets.ModelSurfaceView
 import com.kayser.areascan.sensor.MagnetometerService
+import com.kayser.areascan.sensor.RawMagneticSample
 import com.kayser.areascan.sensor.ScanSessionRepository
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import java.util.concurrent.ConcurrentLinkedDeque
 
 /**
  * Yüzey Tarama ana ekranı.
@@ -86,9 +88,33 @@ class AreaScanActivity : AppCompatActivity() {
 
         setupNavigationRail()
         setupCameraButtons()
+        setupScanningInteraction()
         observeViewModel()
 
         requestNotificationPermissionIfNeeded()
+    }
+
+    /**
+     * Tarama modunu etkinleştirir (kamera top-down kilitlenir) ve basılı tutma
+     * jestini gerçek ölçüm kaydına bağlar.
+     */
+    private fun setupScanningInteraction() {
+        glView.setScanningMode(true)
+
+        glView.onCellLongPress = { worldX, worldZ ->
+            commitAveragedMeasurement(worldX, worldZ)
+            glView.modelRenderer.highlightedCell = null
+        }
+
+        glView.onLongPressProgress = { progress ->
+            // Basit geri bildirim: ilerleme yüzdesini anlık değer metninin üstüne yazıyoruz.
+            // Daha sonra dairesel bir progress widget'ı ile değiştirilebilir.
+            lastValueTextView.text = "Ölçülüyor… %d%%".format((progress * 100).toInt())
+        }
+
+        glView.onLongPressCancelled = {
+            lastValueTextView.text = "İptal edildi"
+        }
     }
 
     private fun setupNavigationRail() {
@@ -163,23 +189,53 @@ class AreaScanActivity : AppCompatActivity() {
         bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
     }
 
+    /** Basılı tutma sırasında biriken son ham örnekler; long-press tetiklenince ortalanır. */
+    private val recentSamplesBuffer = ConcurrentLinkedDeque<RawMagneticSample>()
+
     private fun observeSensorSamples() {
         val service = magnetometerService ?: return
         launchOnStarted {
             service.samples.onEach { sample ->
-                // NOT: Gerçek tarama konumu (x,y) burada henüz GPS/step-counter'dan gelmiyor.
-                // Şimdilik basit bir zaman-bazlı placeholder konum kullanılıyor; ileride
-                // kullanıcı dokunma noktası ya da konum servisinden gelen X/Y ile değiştirilecek.
-                val elapsedSeconds = (sample.timestampNanos / 1_000_000_000L % 1000).toFloat()
-                val x = (elapsedSeconds % viewModel.settings.value.grid.widthMeters)
-                val y = ((elapsedSeconds / 10f) % viewModel.settings.value.grid.heightMeters)
-
-                scanSessionRepository.addSample(sample, x = x, y = y)
-                val points = scanSessionRepository.points.value
-                if (points.isNotEmpty()) {
-                    viewModel.onScanPointAdded(points.last())
+                // Sürekli grid'e eklemek yerine, sadece son örnekleri kısa bir tamponda tutuyoruz.
+                // Gerçek ölçüm noktası, kullanıcı 3D görünümde bir konuma basılı tuttuğunda
+                // (onCellLongPress) bu tampondaki örneklerin ortalaması alınarak kaydedilir.
+                recentSamplesBuffer.addLast(sample)
+                while (recentSamplesBuffer.size > SAMPLE_BUFFER_SIZE) {
+                    recentSamplesBuffer.pollFirst()
                 }
+                lastValueTextView.text = "%.2f µT (anlık)".format(sample.magnitude)
             }.launchIn(this)
+        }
+    }
+
+    /** Basılı tutma bittiğinde tampondaki örneklerin ortalamasını alıp ölçüm noktası olarak kaydeder. */
+    private fun commitAveragedMeasurement(worldX: Float, worldZ: Float) {
+        val samples = recentSamplesBuffer.toList()
+        if (samples.isEmpty()) {
+            return
+        }
+
+        val avgX = samples.map { it.x }.average().toFloat()
+        val avgY = samples.map { it.y }.average().toFloat()
+        val avgZ = samples.map { it.z }.average().toFloat()
+        val avgBiasX = samples.map { it.biasX }.average().toFloat()
+        val avgBiasY = samples.map { it.biasY }.average().toFloat()
+        val avgBiasZ = samples.map { it.biasZ }.average().toFloat()
+        val lastTimestamp = samples.last().timestampNanos
+        val lastAccuracy = samples.last().accuracy
+
+        val averagedSample = RawMagneticSample(
+            x = avgX, y = avgY, z = avgZ,
+            biasX = avgBiasX, biasY = avgBiasY, biasZ = avgBiasZ,
+            timestampNanos = lastTimestamp, accuracy = lastAccuracy
+        )
+
+        // Grid düzlemindeki dünya koordinatı (metre) doğrudan ScanPoint x/y'sine yazılır.
+        // worldZ, dünya Z eksenidir; ScanPoint'in "y" alanına karşılık gelir (bkz. GridMeshBuilder).
+        scanSessionRepository.addSample(averagedSample, x = worldX, y = worldZ)
+        val points = scanSessionRepository.points.value
+        if (points.isNotEmpty()) {
+            viewModel.onScanPointAdded(points.last())
         }
     }
 
@@ -189,5 +245,10 @@ class AreaScanActivity : AppCompatActivity() {
             serviceBound = false
         }
         super.onDestroy()
+    }
+
+    companion object {
+        /** Basılı tutma sırasında ortalama alınacak en yakın örnek sayısı (~50Hz'de yaklaşık 1 saniyelik pencere). */
+        private const val SAMPLE_BUFFER_SIZE = 50
     }
 }
