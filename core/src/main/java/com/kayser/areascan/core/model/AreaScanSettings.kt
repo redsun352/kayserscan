@@ -99,6 +99,27 @@ data class MarchingCubesConfig(
     val smoothNormals: Boolean = true
 )
 
+/**
+ * Adımlı Tarama (Stepped Scan) ayarları.
+ * Thuban'daki "Tarama Ayarları" panelinin kapsamına giren, ama bu projeye özgü eklenen
+ * bir özellik: sistem, hedef bölgede önceden tanımlı sabit aralıklarla (adım aralığı)
+ * sıralı durak noktaları (waypoint) oluşturur ve kullanıcıyı sırayla bu noktalara yönlendirir.
+ * Her durakta beep sesi çalınır; kullanıcı "Ölçü Al" butonuna basarak ölçümü onaylar.
+ */
+data class SteppedScanConfig(
+    /** Durak noktaları arası mesafe (metre). Grid çözünürlüğünden bağımsızdır. */
+    val stepIntervalMeters: Float = 0.2f,
+    /** Adımlı tarama modu etkin mi (false ise serbest/tek-tek seçim modu kullanılır). */
+    val enabled: Boolean = false
+)
+
+enum class StepInterval(val meters: Float, val label: String) {
+    TEN_CM(0.10f, "10 cm"),
+    TWENTY_CM(0.20f, "20 cm"),
+    FIFTY_CM(0.50f, "50 cm"),
+    ONE_M(1.00f, "1 m")
+}
+
 /** Tüm Yüzey Tarama ayarlarını bir arada tutan kapsayıcı (AreaScanActivity'nin tuttuğu state). */
 data class AreaScanSettings(
     val grid: GridConfig = GridConfig(),
@@ -107,5 +128,6 @@ data class AreaScanSettings(
     val rbf: RbfConfig = RbfConfig(),
     val soil: SoilConfig = SoilConfig(),
     val marchingCubes: MarchingCubesConfig = MarchingCubesConfig(),
+    val steppedScan: SteppedScanConfig = SteppedScanConfig(),
     val arcoreEnabled: Boolean = false
 )

@@ -17,4 +17,11 @@
     <string name="permission_notification_required">Arka planda tarama için bildirim izni gereklidir.</string>
     <string name="calibration_in_progress">Kalibrasyon sürüyor — cihazı 8 şeklinde hareket ettirin</string>
     <string name="calibration_complete">Kalibrasyon tamamlandı</string>
+    <string name="take_measurement_text">Ölçü Al</string>
+    <string name="stepped_scan_text">Adımlı Tarama</string>
+    <string name="stepped_scan_description_text">Sistem sizi sırayla durak noktalarına yönlendirir, her durakta beep sesi çalar.</string>
+    <string name="start_stepped_scan_text">Adımlı Taramayı Başlat</string>
+    <string name="stop_stepped_scan_text">Adımlı Taramayı Durdur</string>
+    <string name="waypoint_progress_format">Durak %1$d / %2$d</string>
+    <string name="stepped_scan_complete_text">Tarama tamamlandı</string>
 </resources>

@@ -5,9 +5,16 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.view.MotionEvent
+import android.view.View
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -17,6 +24,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.ViewModelProvider
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.navigationrail.NavigationRailView
 import com.kayser.areascan.fragments.FragmentBoundingBoxProperties
@@ -94,26 +102,158 @@ class AreaScanActivity : AppCompatActivity() {
         requestNotificationPermissionIfNeeded()
     }
 
+    /** Tarama modunda son seçilen (ama henüz ölçülmemiş) hücrenin dünya koordinatı. */
+    private var selectedWorldX: Float? = null
+    private var selectedWorldZ: Float? = null
+
+    /** Buton basılı tutulurken çalışan ilerleme/tamamlama Handler'ı. */
+    private val measurementHandler = Handler(Looper.getMainLooper())
+    private var measurementTriggered = false
+
+    private lateinit var takeMeasurementButton: MaterialButton
+    private lateinit var measurementProgressBar: ProgressBar
+
+    /** Adımlı tarama modunda durak noktasına ulaşıldığında dikkat çekmek için kullanılan beep. */
+    private val toneGenerator by lazy { ToneGenerator(AudioManager.STREAM_NOTIFICATION, TONE_VOLUME) }
+
+    private val measurementProgressRunnable = object : Runnable {
+        private var startTime = 0L
+        fun start() {
+            startTime = System.currentTimeMillis()
+            measurementHandler.postDelayed(this, PROGRESS_TICK_MS)
+        }
+        override fun run() {
+            if (measurementTriggered) return
+            val elapsed = System.currentTimeMillis() - startTime
+            val progress = (elapsed.toFloat() / MEASUREMENT_HOLD_DURATION_MS).coerceIn(0f, 1f)
+            measurementProgressBar.progress = (progress * 100).toInt()
+            if (progress >= 1f) {
+                triggerMeasurement()
+            } else {
+                measurementHandler.postDelayed(this, PROGRESS_TICK_MS)
+            }
+        }
+    }
+
     /**
-     * Tarama modunu etkinleştirir (kamera top-down kilitlenir) ve basılı tutma
-     * jestini gerçek ölçüm kaydına bağlar.
+     * Tarama modunu etkinleştirir (kamera top-down kilitlenir). İki alt-mod desteklenir:
+     *
+     * A) Serbest seçim modu (varsayılan): 3D görünümde kısa dokunuşla (tap) istediğin
+     *    herhangi bir hücre seçilir.
+     *
+     * B) Adımlı tarama modu (Tarama Ayarları panelinden başlatılır): sistem sırayla
+     *    önceden hesaplanmış waypoint'leri otomatik seçili gösterir; her yeni durakta
+     *    beep çalınır. Kullanıcı sadece cihazı o noktaya götürüp "Ölçü Al"a basar;
+     *    ölçüm tamamlanınca sistem otomatik olarak sıradaki durağa geçer.
+     *
+     * Her iki modda da gerçek ölçüm: "Ölçü Al" butonu basılı tutulduğu sürece
+     * (MEASUREMENT_HOLD_DURATION_MS) ilerleme çubuğu dolar; süre tamamlanınca o anki
+     * sensör tamponunun ortalaması seçili koordinata kaydedilir.
      */
     private fun setupScanningInteraction() {
         glView.setScanningMode(true)
+        takeMeasurementButton = findViewById(R.id.takeMeasurementButton)
+        measurementProgressBar = findViewById(R.id.measurementProgressBar)
 
-        glView.onCellLongPress = { worldX, worldZ ->
+        glView.onCellSelected = { worldX, worldZ ->
+            // Adımlı tarama çalışırken kullanıcının serbest seçim yapmasını engelliyoruz;
+            // konum zaten sıradaki waypoint tarafından dayatılıyor.
+            if (!viewModel.isSteppedScanRunning()) {
+                selectedWorldX = worldX
+                selectedWorldZ = worldZ
+                takeMeasurementButton.isEnabled = true
+            }
+        }
+
+        takeMeasurementButton.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    if (selectedWorldX != null) {
+                        startMeasurementHold()
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    cancelMeasurementHold()
+                    if (event.action == MotionEvent.ACTION_UP) {
+                        takeMeasurementButton.performClick()
+                    }
+                    true
+                }
+                else -> false
+            }
+        }
+        // performClick gerekli (erişilebilirlik/lint uyarısını gidermek için) ama gerçek
+        // ölçüm mantığı zaten OnTouchListener'da yönetiliyor; burada ek bir işlem yapılmıyor.
+        takeMeasurementButton.setOnClickListener { /* no-op: bkz. OnTouchListener */ }
+
+        observeSteppedScanWaypoints()
+    }
+
+    /**
+     * Adımlı tarama waypoint state'ini izler: her yeni durak geldiğinde (ya tarama
+     * başlatıldığında ya da bir ölçüm tamamlanıp sıradaki durağa geçildiğinde)
+     * o koordinatı otomatik seçili yapar, 3D görünümde vurgular ve beep çalar.
+     */
+    private fun observeSteppedScanWaypoints() {
+        launchOnStarted {
+            viewModel.currentWaypointFlow.onEach { waypoint ->
+                if (!viewModel.isSteppedScanRunning() || waypoint == null) return@onEach
+
+                selectedWorldX = waypoint.worldX
+                selectedWorldZ = waypoint.worldZ
+                glView.modelRenderer.highlightedCell = floatArrayOf(waypoint.worldX, waypoint.worldZ)
+                takeMeasurementButton.isEnabled = true
+                playWaypointBeep()
+
+                val total = viewModel.waypoints.value.size
+                lastValueTextView.text = getString(R.string.waypoint_progress_format, waypoint.index + 1, total)
+            }.launchIn(this)
+        }
+    }
+
+    private fun playWaypointBeep() {
+        toneGenerator.startTone(ToneGenerator.TONE_PROP_BEEP, BEEP_DURATION_MS)
+    }
+
+    private fun startMeasurementHold() {
+        measurementTriggered = false
+        measurementProgressBar.visibility = View.VISIBLE
+        measurementProgressBar.progress = 0
+        measurementProgressRunnable.start()
+    }
+
+    private fun cancelMeasurementHold() {
+        if (!measurementTriggered) {
+            measurementHandler.removeCallbacks(measurementProgressRunnable)
+            measurementProgressBar.visibility = View.INVISIBLE
+            measurementProgressBar.progress = 0
+        }
+    }
+
+    private fun triggerMeasurement() {
+        measurementTriggered = true
+        val worldX = selectedWorldX
+        val worldZ = selectedWorldZ
+        measurementProgressBar.visibility = View.INVISIBLE
+        measurementProgressBar.progress = 0
+
+        if (worldX != null && worldZ != null) {
             commitAveragedMeasurement(worldX, worldZ)
-            glView.modelRenderer.highlightedCell = null
         }
 
-        glView.onLongPressProgress = { progress ->
-            // Basit geri bildirim: ilerleme yüzdesini anlık değer metninin üstüne yazıyoruz.
-            // Daha sonra dairesel bir progress widget'ı ile değiştirilebilir.
-            lastValueTextView.text = "Ölçülüyor… %d%%".format((progress * 100).toInt())
-        }
+        selectedWorldX = null
+        selectedWorldZ = null
+        glView.clearSelection()
+        takeMeasurementButton.isEnabled = false
 
-        glView.onLongPressCancelled = {
-            lastValueTextView.text = "İptal edildi"
+        // Adımlı tarama çalışıyorsa otomatik olarak sıradaki durağa geç.
+        // advanceToNextWaypoint() false dönerse (son durak tamamlandı) tarama biter.
+        if (viewModel.isSteppedScanRunning()) {
+            val hasNext = viewModel.advanceToNextWaypoint()
+            if (!hasNext) {
+                lastValueTextView.text = getString(R.string.stepped_scan_complete_text)
+            }
         }
     }
 
@@ -244,11 +384,24 @@ class AreaScanActivity : AppCompatActivity() {
             unbindService(serviceConnection)
             serviceBound = false
         }
+        toneGenerator.release()
         super.onDestroy()
     }
 
     companion object {
         /** Basılı tutma sırasında ortalama alınacak en yakın örnek sayısı (~50Hz'de yaklaşık 1 saniyelik pencere). */
         private const val SAMPLE_BUFFER_SIZE = 50
+
+        /** "Ölçü Al" butonunun ne kadar süre basılı tutulması gerektiği (ms). */
+        private const val MEASUREMENT_HOLD_DURATION_MS = 1200L
+
+        /** İlerleme çubuğunun ne sıklıkla güncellendiği (ms). */
+        private const val PROGRESS_TICK_MS = 50L
+
+        /** Adımlı tarama durağına ulaşıldığında çalınan beep'in süresi (ms). */
+        private const val BEEP_DURATION_MS = 150
+
+        /** ToneGenerator ses seviyesi (0-100). */
+        private const val TONE_VOLUME = 80
     }
 }
