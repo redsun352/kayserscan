@@ -31,6 +31,9 @@ class SurfaceMeshRenderer {
         this.wireframe = wireframe
     }
 
+    /** Debug/log amaçlı: şu an çizilecek bir mesh var mı. */
+    fun hasMesh(): Boolean = currentMesh != null
+
     fun draw(mvpMatrix: FloatArray) {
         val mesh = currentMesh ?: return
 

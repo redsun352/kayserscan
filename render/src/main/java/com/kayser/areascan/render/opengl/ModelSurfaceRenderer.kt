@@ -4,6 +4,7 @@ import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.opengl.GLU
 import android.opengl.Matrix
+import android.util.Log
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
@@ -42,21 +43,35 @@ class ModelSurfaceRenderer : GLSurfaceView.Renderer {
     @Volatile
     private var viewportHeight = 1
 
+    private var frameCount = 0
+
     /** Tarama modunda seçili (vurgulanan) grid hücresinin dünya koordinatı; null = seçim yok. */
     @Volatile
     var highlightedCell: FloatArray? = null
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+        Log.d(TAG, "onSurfaceCreated cagrildi - GL context olusturuldu")
         GLES20.glClearColor(0.06f, 0.07f, 0.09f, 1f)
         GLES20.glEnable(GLES20.GL_DEPTH_TEST)
         GLES20.glEnable(GLES20.GL_BLEND)
         GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA)
-        meshRenderer.onSurfaceCreated()
-        highlightRenderer.onSurfaceCreated()
+        try {
+            meshRenderer.onSurfaceCreated()
+            Log.d(TAG, "meshRenderer shader programi basariyla olusturuldu")
+        } catch (e: Exception) {
+            Log.e(TAG, "meshRenderer shader programi olusturma HATASI", e)
+        }
+        try {
+            highlightRenderer.onSurfaceCreated()
+            Log.d(TAG, "highlightRenderer shader programi basariyla olusturuldu")
+        } catch (e: Exception) {
+            Log.e(TAG, "highlightRenderer shader programi olusturma HATASI", e)
+        }
         Matrix.setIdentityM(modelMatrix, 0)
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
+        Log.d(TAG, "onSurfaceChanged: width=$width height=$height")
         viewportWidth = width
         viewportHeight = height
         GLES20.glViewport(0, 0, width, height)
@@ -68,6 +83,7 @@ class ModelSurfaceRenderer : GLSurfaceView.Renderer {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
 
         if (meshDirty) {
+            Log.d(TAG, "Yeni mesh GPU'ya yukleniyor: vertexCount=${pendingMesh?.vertexCount} indexCount=${pendingMesh?.indexCount}")
             meshRenderer.setMesh(pendingMesh, wireframeMode)
             meshDirty = false
         }
@@ -81,6 +97,19 @@ class ModelSurfaceRenderer : GLSurfaceView.Renderer {
         meshRenderer.draw(mvpMatrix)
         highlightRenderer.draw(highlightedCell, mvpMatrix)
 
+        // Her 60 frame'de bir (yaklaşık 1 saniyede bir) durum logu - spam'i önlemek için.
+        frameCount++
+        if (frameCount % 60 == 0) {
+            Log.d(TAG, "Frame $frameCount: highlightedCell=${highlightedCell?.toList()} " +
+                "meshVar=${meshRenderer.hasMesh()} viewport=${viewportWidth}x$viewportHeight " +
+                "camera.distance=${camera.distance} camera.rotationX=${camera.rotationX} " +
+                "camera.topDownLocked=${camera.topDownLocked}")
+            val err = GLES20.glGetError()
+            if (err != GLES20.GL_NO_ERROR) {
+                Log.e(TAG, "GL HATASI tespit edildi: 0x${err.toString(16)}")
+            }
+        }
+
         // Ray-casting için UI thread'e güvenle aktarılabilecek anlık görüntüler.
         // Yeni dizi oluşturmak (kopyalamak yerine) referans atamasının atomik olmasını sağlar.
         viewMatrixSnapshot = viewMatrix.copyOf()
@@ -89,6 +118,7 @@ class ModelSurfaceRenderer : GLSurfaceView.Renderer {
 
     /** UI/sensör thread'inden çağrılır; gerçek yükleme GL thread'inde onDrawFrame'de yapılır. */
     fun updateMesh(mesh: GridMeshBuilder.MeshData?, wireframe: Boolean) {
+        Log.d(TAG, "updateMesh cagrildi: mesh=${if (mesh == null) "NULL" else "vertexCount=${mesh.vertexCount}"}")
         pendingMesh = mesh
         wireframeMode = wireframe
         meshDirty = true
@@ -122,7 +152,10 @@ class ModelSurfaceRenderer : GLSurfaceView.Renderer {
             farPoint, 0
         )
 
-        if (unprojectOk1 != GL10.GL_TRUE || unprojectOk2 != GL10.GL_TRUE) return null
+        if (unprojectOk1 != GL10.GL_TRUE || unprojectOk2 != GL10.GL_TRUE) {
+            Log.w(TAG, "gluUnProject basarisiz: ok1=$unprojectOk1 ok2=$unprojectOk2")
+            return null
+        }
 
         // w bölmesi (perspective divide)
         val nx = nearPoint[0] / nearPoint[3]
@@ -137,12 +170,23 @@ class ModelSurfaceRenderer : GLSurfaceView.Renderer {
         val dz = fz - nz
 
         // Y=0 düzlemiyle kesişim: ny + t*dy = 0  =>  t = -ny/dy
-        if (kotlin.math.abs(dy) < 1e-6f) return null // ışın düzleme paralel
+        if (kotlin.math.abs(dy) < 1e-6f) {
+            Log.w(TAG, "Isin duzleme paralel, kesisim yok (dy=$dy)")
+            return null
+        }
         val t = -ny / dy
-        if (t < 0f) return null // kesişim kameranın arkasında
+        if (t < 0f) {
+            Log.w(TAG, "Kesisim kameranin arkasinda (t=$t)")
+            return null
+        }
 
         val worldX = nx + t * dx
         val worldZ = nz + t * dz
+        Log.d(TAG, "screenToWorldOnGroundPlane: screen=($screenX,$screenY) -> world=($worldX,$worldZ)")
         return floatArrayOf(worldX, worldZ)
+    }
+
+    companion object {
+        private const val TAG = "KayserGLRenderer"
     }
 }

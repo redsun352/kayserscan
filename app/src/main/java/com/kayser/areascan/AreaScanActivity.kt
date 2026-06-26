@@ -12,6 +12,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.widget.ProgressBar
@@ -67,13 +68,21 @@ class AreaScanActivity : AppCompatActivity() {
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
+            Log.d(TAG, "onServiceConnected: binder=${binder != null}")
             val localBinder = binder as? MagnetometerService.LocalBinder
             magnetometerService = localBinder?.getService()
+            Log.d(TAG, "magnetometerService alindi: ${magnetometerService != null}, state=${magnetometerService?.state?.value}")
             serviceBound = true
             observeSensorSamples()
+            launchOnStarted {
+                magnetometerService?.state?.onEach { state ->
+                    Log.d(TAG, "MagnetometerService.state degisti: $state")
+                }?.launchIn(this)
+            }
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
+            Log.w(TAG, "onServiceDisconnected")
             magnetometerService = null
             serviceBound = false
         }
@@ -156,6 +165,7 @@ class AreaScanActivity : AppCompatActivity() {
         measurementProgressBar = findViewById(R.id.measurementProgressBar)
 
         glView.onCellSelected = { worldX, worldZ ->
+            Log.d(TAG, "onCellSelected: worldX=$worldX worldZ=$worldZ steppedScanRunning=${viewModel.isSteppedScanRunning()}")
             // Adımlı tarama çalışırken kullanıcının serbest seçim yapmasını engelliyoruz;
             // konum zaten sıradaki waypoint tarafından dayatılıyor.
             if (!viewModel.isSteppedScanRunning()) {
@@ -232,6 +242,7 @@ class AreaScanActivity : AppCompatActivity() {
     }
 
     private fun triggerMeasurement() {
+        Log.d(TAG, "triggerMeasurement: selectedWorldX=$selectedWorldX selectedWorldZ=$selectedWorldZ")
         measurementTriggered = true
         val worldX = selectedWorldX
         val worldZ = selectedWorldZ
@@ -240,6 +251,8 @@ class AreaScanActivity : AppCompatActivity() {
 
         if (worldX != null && worldZ != null) {
             commitAveragedMeasurement(worldX, worldZ)
+        } else {
+            Log.e(TAG, "triggerMeasurement: worldX veya worldZ null, olcum atlandi")
         }
 
         selectedWorldX = null
@@ -334,11 +347,9 @@ class AreaScanActivity : AppCompatActivity() {
 
     private fun observeSensorSamples() {
         val service = magnetometerService ?: return
+        Log.d(TAG, "observeSensorSamples baslatildi, servis baglandi")
         launchOnStarted {
             service.samples.onEach { sample ->
-                // Sürekli grid'e eklemek yerine, sadece son örnekleri kısa bir tamponda tutuyoruz.
-                // Gerçek ölçüm noktası, kullanıcı 3D görünümde bir konuma basılı tuttuğunda
-                // (onCellLongPress) bu tampondaki örneklerin ortalaması alınarak kaydedilir.
                 recentSamplesBuffer.addLast(sample)
                 while (recentSamplesBuffer.size > SAMPLE_BUFFER_SIZE) {
                     recentSamplesBuffer.pollFirst()
@@ -350,8 +361,10 @@ class AreaScanActivity : AppCompatActivity() {
 
     /** Basılı tutma bittiğinde tampondaki örneklerin ortalamasını alıp ölçüm noktası olarak kaydeder. */
     private fun commitAveragedMeasurement(worldX: Float, worldZ: Float) {
+        Log.d(TAG, "commitAveragedMeasurement cagrildi: worldX=$worldX worldZ=$worldZ bufferSize=${recentSamplesBuffer.size}")
         val samples = recentSamplesBuffer.toList()
         if (samples.isEmpty()) {
+            Log.w(TAG, "commitAveragedMeasurement: ornek tamponu BOS, olcum kaydedilmiyor! (sensor servisi veri uretmiyor olabilir)")
             return
         }
 
@@ -374,8 +387,11 @@ class AreaScanActivity : AppCompatActivity() {
         // worldZ, dünya Z eksenidir; ScanPoint'in "y" alanına karşılık gelir (bkz. GridMeshBuilder).
         scanSessionRepository.addSample(averagedSample, x = worldX, y = worldZ)
         val points = scanSessionRepository.points.value
+        Log.d(TAG, "commitAveragedMeasurement: scanSessionRepository.points.size=${points.size}")
         if (points.isNotEmpty()) {
             viewModel.onScanPointAdded(points.last())
+        } else {
+            Log.e(TAG, "commitAveragedMeasurement: addSample sonrasi points listesi HALA BOS - beklenmeyen durum")
         }
     }
 
@@ -389,6 +405,8 @@ class AreaScanActivity : AppCompatActivity() {
     }
 
     companion object {
+        private const val TAG = "KayserActivity"
+
         /** Basılı tutma sırasında ortalama alınacak en yakın örnek sayısı (~50Hz'de yaklaşık 1 saniyelik pencere). */
         private const val SAMPLE_BUFFER_SIZE = 50
 

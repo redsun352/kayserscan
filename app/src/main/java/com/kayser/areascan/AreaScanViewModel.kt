@@ -2,6 +2,7 @@ package com.kayser.areascan
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.util.Log
 import com.kayser.areascan.core.interpolation.RbfInterpolator
 import com.kayser.areascan.core.model.AreaScanSettings
 import com.kayser.areascan.core.model.ScanPoint
@@ -74,7 +75,9 @@ class AreaScanViewModel : ViewModel() {
     }
 
     fun onScanPointAdded(point: ScanPoint) {
+        Log.d(TAG, "onScanPointAdded: x=${point.x} y=${point.y} magnitude=${point.magnitude} normalizedValue=${point.normalizedValue}")
         _scanPoints.value = _scanPoints.value + point
+        Log.d(TAG, "Toplam scanPoints sayisi: ${_scanPoints.value.size}")
         _lastValueText.value = "%.2f µT".format(point.normalizedValue ?: point.magnitude)
         rebuildMesh()
     }
@@ -126,25 +129,37 @@ class AreaScanViewModel : ViewModel() {
     /** RBF enterpolasyonu + mesh üretimini arka planda (Default dispatcher) çalıştırır. */
     private fun rebuildMesh() {
         val points = _scanPoints.value
-        if (points.isEmpty()) return
+        if (points.isEmpty()) {
+            Log.w(TAG, "rebuildMesh: scanPoints bos, mesh uretilmiyor")
+            return
+        }
 
+        Log.d(TAG, "rebuildMesh basliyor: pointCount=${points.size}")
         val currentSettings = _settings.value
         viewModelScope.launch {
             val mesh = withContext(Dispatchers.Default) {
+                val gridRes = currentSettings.grid.resolution * currentSettings.rbf.outputResolutionMultiplier
+                Log.d(TAG, "RBF interpolasyonu: gridResolution=$gridRes domainW=${currentSettings.grid.widthMeters} domainH=${currentSettings.grid.heightMeters}")
                 val interpolatedGrid = rbfInterpolator.interpolate(
                     points = points,
                     config = currentSettings.rbf,
-                    gridResolution = currentSettings.grid.resolution * currentSettings.rbf.outputResolutionMultiplier,
+                    gridResolution = gridRes,
                     domainWidth = currentSettings.grid.widthMeters,
                     domainHeight = currentSettings.grid.heightMeters
                 )
+                Log.d(TAG, "RBF interpolasyonu bitti, mesh insa ediliyor")
                 gridMeshBuilder.buildFromInterpolatedGrid(
                     valueGrid = interpolatedGrid,
                     grid = currentSettings.grid,
                     surface = currentSettings.surface
                 )
             }
+            Log.d(TAG, "rebuildMesh tamamlandi: vertexCount=${mesh.vertexCount} indexCount=${mesh.indexCount}")
             _meshData.value = mesh
         }
+    }
+
+    companion object {
+        private const val TAG = "KayserViewModel"
     }
 }
