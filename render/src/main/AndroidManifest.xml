@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- ARCore "optional" olarak işaretlendi: Thuban'daki gibi bu özellik cihazda yoksa
+         OpenGL grid/yüzey/marching-cubes modları normal çalışmaya devam etmeli. -->
+    <uses-feature
+        android:name="android.hardware.camera.ar"
+        android:required="false" />
+
+    <application>
+        <meta-data
+            android:name="com.google.ar.core"
+            android:value="optional" />
+    </application>
+
+</manifest>

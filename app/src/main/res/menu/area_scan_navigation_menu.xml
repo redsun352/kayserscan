@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/area_scan_navigationview_scanning"
+        android:icon="@android:drawable/ic_menu_add"
+        android:title="@string/scanning_settings_text" />
+    <item
+        android:id="@+id/area_scan_navigationview_grid"
+        android:icon="@android:drawable/ic_menu_view"
+        android:title="@string/grid_settings_text" />
+    <item
+        android:id="@+id/area_scan_navigationview_boundingbox"
+        android:icon="@android:drawable/ic_menu_crop"
+        android:title="@string/boundingbox_settings_text" />
+    <item
+        android:id="@+id/area_scan_navigationview_surface"
+        android:icon="@android:drawable/ic_menu_mapmode"
+        android:title="@string/surface_settings_text" />
+    <item
+        android:id="@+id/area_scan_navigationview_rbf"
+        android:icon="@android:drawable/ic_menu_compass"
+        android:title="@string/rbf_settings_text" />
+    <item
+        android:id="@+id/area_scan_navigationview_soil"
+        android:icon="@android:drawable/ic_menu_gallery"
+        android:title="@string/soil_settings_text" />
+    <item
+        android:id="@+id/area_scan_navigationview_marching_cubes"
+        android:icon="@android:drawable/ic_menu_slideshow"
+        android:title="@string/marching_cubes_settings_text" />
+</menu>

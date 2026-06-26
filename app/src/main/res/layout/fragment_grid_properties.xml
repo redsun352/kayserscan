@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/grid_settings_text"
+        android:textColor="@android:color/white"
+        android:textStyle="bold"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/widthLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:textColor="@android:color/white"
+        android:text="Genişlik: 5.0 m" />
+    <com.google.android.material.slider.Slider
+        android:id="@+id/widthSlider"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:valueFrom="1"
+        android:valueTo="30"
+        android:value="5" />
+
+    <TextView
+        android:id="@+id/heightLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="@android:color/white"
+        android:text="Yükseklik: 5.0 m" />
+    <com.google.android.material.slider.Slider
+        android:id="@+id/heightSlider"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:valueFrom="1"
+        android:valueTo="30"
+        android:value="5" />
+
+    <TextView
+        android:id="@+id/resolutionLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="@android:color/white"
+        android:text="Çözünürlük: 50" />
+    <com.google.android.material.slider.Slider
+        android:id="@+id/resolutionSlider"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:valueFrom="10"
+        android:valueTo="120"
+        android:stepSize="2"
+        android:value="50" />
+
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/showGridLinesSwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:checked="true"
+        android:text="Izgara çizgilerini göster"
+        android:textColor="@android:color/white" />
+
+</LinearLayout>

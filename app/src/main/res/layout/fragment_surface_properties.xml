@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/surface_settings_text"
+        android:textColor="@android:color/white"
+        android:textStyle="bold"
+        android:textSize="16sp" />
+
+    <com.google.android.material.button.MaterialButtonToggleGroup
+        android:id="@+id/colormapToggleGroup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        app:singleSelection="true">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/colormapJetButton"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Jet" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/colormapGrayscaleButton"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Gri" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/colormapViridisButton"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Viridis" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/colormapThermalButton"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Termal" />
+    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+    <TextView
+        android:id="@+id/opacityLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:textColor="@android:color/white"
+        android:text="Opaklık: 100%" />
+    <com.google.android.material.slider.Slider
+        android:id="@+id/opacitySlider"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:valueFrom="0.1"
+        android:valueTo="1.0"
+        android:value="1.0" />
+
+    <TextView
+        android:id="@+id/exaggerationLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="@android:color/white"
+        android:text="Abartma çarpanı: 1.0x" />
+    <com.google.android.material.slider.Slider
+        android:id="@+id/exaggerationSlider"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:valueFrom="0.1"
+        android:valueTo="5.0"
+        android:value="1.0" />
+
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/wireframeSwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="Tel kafes (wireframe) modu"
+        android:textColor="@android:color/white" />
+
+</LinearLayout>

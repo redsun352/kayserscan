@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="kayser_primary">#2E7D6B</color>
+    <color name="kayser_on_primary">#FFFFFF</color>
+    <color name="kayser_secondary">#C9A227</color>
+    <color name="kayser_background">#11161A</color>
+    <color name="kayser_surface">#1B2228</color>
+</resources>

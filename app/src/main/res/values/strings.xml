@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Kayser Yüzey Tarama</string>
+
+    <string name="main_menu_area_scan_button_text">Yüzey Tarama</string>
+    <string name="ar_active_text">Artırılmış gerçeklik aktif</string>
+    <string name="save_file_text">Dosya Kaydet</string>
+    <string name="scanning_settings_text">Tarama Ayarları</string>
+    <string name="grid_settings_text">Izgara Ayarları</string>
+    <string name="boundingbox_settings_text">Sınırlandırma Kutusu Ayarları</string>
+    <string name="surface_settings_text">Yüzey Ayarları</string>
+    <string name="rbf_settings_text">Enterpolasyon Ayarları</string>
+    <string name="soil_settings_text">Toprak Ayarları</string>
+    <string name="marching_cubes_settings_text">Hacim Ayarları</string>
+
+    <string name="permission_sensor_required">Manyetometre sensörü bu cihazda bulunamadı.</string>
+    <string name="permission_notification_required">Arka planda tarama için bildirim izni gereklidir.</string>
+    <string name="calibration_in_progress">Kalibrasyon sürüyor — cihazı 8 şeklinde hareket ettirin</string>
+    <string name="calibration_complete">Kalibrasyon tamamlandı</string>
+</resources>

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/rbf_settings_text"
+        android:textColor="@android:color/white"
+        android:textStyle="bold"
+        android:textSize="16sp" />
+
+    <com.google.android.material.button.MaterialButtonToggleGroup
+        android:id="@+id/kernelToggleGroup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        app:singleSelection="true">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/kernelMultiquadricButton"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="11sp"
+            android:text="Multiquadric" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/kernelGaussianButton"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="11sp"
+            android:text="Gaussian" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/kernelThinPlateButton"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="11sp"
+            android:text="Thin Plate" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/kernelLinearButton"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="11sp"
+            android:text="Lineer" />
+    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+    <TextView
+        android:id="@+id/epsilonLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:textColor="@android:color/white"
+        android:text="Epsilon (yayılım): 1.0" />
+    <com.google.android.material.slider.Slider
+        android:id="@+id/epsilonSlider"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:valueFrom="0.1"
+        android:valueTo="5.0"
+        android:value="1.0" />
+
+    <TextView
+        android:id="@+id/smoothingLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="@android:color/white"
+        android:text="Düzleştirme: 0.0" />
+    <com.google.android.material.slider.Slider
+        android:id="@+id/smoothingSlider"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:valueFrom="0.0"
+        android:valueTo="1.0"
+        android:value="0.0" />
+
+</LinearLayout>

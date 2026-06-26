@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/scanning_settings_text"
+        android:textColor="@android:color/white"
+        android:textStyle="bold"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/calibrationStatusText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:textColor="@android:color/white"
+        android:text="Hard-iron kalibrasyonu yapılmadı" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/startCalibrationButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Kalibrasyonu Başlat" />
+
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/arcoreSwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/ar_active_text"
+        android:textColor="@android:color/white" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/clearScanButton"
+        style="?attr/materialButtonOutlinedStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Taramayı Temizle" />
+
+</LinearLayout>

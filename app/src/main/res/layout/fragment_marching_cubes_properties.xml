@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/marching_cubes_settings_text"
+        android:textColor="@android:color/white"
+        android:textStyle="bold"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/isoLevelLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:textColor="@android:color/white"
+        android:text="Iso seviyesi: 0.50" />
+    <com.google.android.material.slider.Slider
+        android:id="@+id/isoLevelSlider"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:valueFrom="0.0"
+        android:valueTo="1.0"
+        android:value="0.5" />
+
+    <TextView
+        android:id="@+id/voxelResolutionLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="@android:color/white"
+        android:text="Voxel çözünürlüğü: 32" />
+    <com.google.android.material.slider.Slider
+        android:id="@+id/voxelResolutionSlider"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:valueFrom="8"
+        android:valueTo="64"
+        android:stepSize="4"
+        android:value="32" />
+
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/smoothNormalsSwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:checked="true"
+        android:text="Yumuşatılmış normaller"
+        android:textColor="@android:color/white" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:textColor="#AAAAAA"
+        android:textSize="12sp"
+        android:text="Yüksek voxel çözünürlüğü daha pürüzsüz ama daha yavaş hesaplanan bir hacim üretir." />
+
+</LinearLayout>
