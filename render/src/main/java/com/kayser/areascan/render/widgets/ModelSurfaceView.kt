@@ -97,19 +97,19 @@ class ModelSurfaceView @JvmOverloads constructor(
                 // Parmak belirgin şekilde kayarsa (örn. kazara sürükleme) basılı tutmayı iptal et.
                 val movedDistance = kotlin.math.hypot(event.x - downX, event.y - downY)
                 if (movedDistance > MOVE_CANCEL_THRESHOLD_PX) {
-                    cancelLongPress()
+                    cancelScanLongPress()
                 }
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 if (!longPressTriggered) {
-                    cancelLongPress()
+                    cancelScanLongPress()
                     modelRenderer.highlightedCell = null
                 }
             }
         }
     }
 
-    private fun cancelLongPress() {
+    private fun cancelScanLongPress() {
         longPressHandler.removeCallbacks(longPressRunnable)
         if (!longPressTriggered) {
             onLongPressCancelled?.invoke()

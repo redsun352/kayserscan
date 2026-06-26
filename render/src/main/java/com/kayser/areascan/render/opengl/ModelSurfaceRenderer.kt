@@ -122,7 +122,7 @@ class ModelSurfaceRenderer : GLSurfaceView.Renderer {
             farPoint, 0
         )
 
-        if (unprojectOk1 != GLU.GLU_TRUE || unprojectOk2 != GLU.GLU_TRUE) return null
+        if (unprojectOk1 != GL10.GL_TRUE || unprojectOk2 != GL10.GL_TRUE) return null
 
         // w bölmesi (perspective divide)
         val nx = nearPoint[0] / nearPoint[3]
